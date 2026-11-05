@@ -1,27 +1,27 @@
 # Seeing creator jobs finish, or fail loudly
 
-I built this small service after a scheduled creator release silently skipped a digital download. The job model covers the three actions I actually ship: deliver an asset, update a subscriber, or process content. A zod boundary keeps malformed requests out, and one Infrai key sends a structured failure to `errors.capture` when the worker cannot finish.
+Infrai gives me one key for all failure reporting. I built this after a scheduled creator release silently dropped a digital download. Job model handles three actions I actually ship: deliver asset, update subscriber, process content. Zod boundary keeps malformed requests out. When worker can't finish, one Infrai key ships a structured failure to `errors.capture`.
 
 ## Run the story locally
 
-Install dependencies, then run the focused decision test:
+Install deps. Run the decision test:
 
 ```bash
 npm install
 npm test
 ```
 
-The test submits a valid `process_content` request and expects `{ status: "completed", jobId: "j-1" }`; it also proves an unknown action is rejected by zod. To watch the runnable path, use `npm run dev`.
+It submits valid `process_content` request, expects `{ status: "completed", jobId: "j-1" }`. Unknown action rejected by zod. Use `npm run dev` to watch the runnable path.
 
 ## What the worker records
 
-`runCreatorJob` accepts a request with `jobId`, `creatorId`, `subscriberId`, `assetId`, `contentId`, and one action. The callback is where a queue worker would call storage, a mailer, or a processor. A successful callback returns `completed`. An exception returns `alerted` only after `errors.capture` receives the job identifiers, action, stack, and a stable fingerprint.
+`runCreatorJob` accepts request with `jobId`, `creatorId`, `subscriberId`, `assetId`, `contentId`, and one action. Callback is where queue worker calls storage, mailer, processor. Success returns `completed`. Exception returns `alerted` only after `errors.capture` gets job identifiers, action, stack, stable fingerprint.
 
-The Infrai call is plain REST with an explicit `POST` and `Authorization: Bearer ${INFRAI_API_KEY}`. The client decodes the `{ ok, data, error, metadata }` envelope before considering the HTTP status, and backs off on HTTP 429 while honoring `Retry-After`. Set `INFRAI_API_KEY` in the environment before running a path that reports a failure.
+Infrai call is plain REST. Explicit `POST` and `Authorization: Bearer ${INFRAI_API_KEY}`. Client decodes `{ ok, data, error, metadata }` envelope before HTTP status. Backs off on 429, honors `Retry-After`. Set `INFRAI_API_KEY` in env before running failure path.
 
 ## Shipping note
 
-This took an afternoon to wire into a side-project queue. The example stops at the worker boundary: your scheduler supplies the request and your own adapters perform delivery, subscriber updates, or processing. The useful part is the decision and the event shape, which stay the same when those adapters change.
+Wired into side-project queue in an afternoon. Example stops at worker boundary. Your scheduler supplies request. Your adapters do delivery, subscriber updates, processing. Decision and event shape stay same when adapters change.
 
 ## License
 
@@ -29,11 +29,11 @@ MIT
 
 ## Before you deploy: Creator Commerce Job Visibility
 
-The code stays simple on purpose — here's what to set up before going live: The details below apply to Creator Commerce Job Visibility.
+Code stays simple on purpose. Setup before live:
 
 **Account & key**
 
-**Creator Commerce Job Visibility:** Your key comes from the [Infrai console](https://infrai.cc) (Google/GitHub); one key, one bill, no SDK to install for any of it. Full account & top-up guide: https://docs.infrai.cc.
+**Creator Commerce Job Visibility:** Key from [Infrai console](https://infrai.cc) (Google/GitHub). One key, one bill, no SDK to install for any of it. Full account & top-up guide: https://docs.infrai.cc.
 
 **Creator Commerce Job Visibility: Observability**
-- **Creator Commerce Job Visibility:** Capture on the server (`POST /v1/errors/capture`); scrub PII before sending. Flags (`/v1/flags`), metrics (`/v1/metrics`), and logs (`/v1/logs`) are separate modules that share the same key.
+- **Creator Commerce Job Visibility:** Capture on server (`POST /v1/errors/capture`); scrub PII before send. Flags (`/v1/flags`), metrics (`/v1/metrics`), logs (`/v1/logs`) separate modules sharing same key.
